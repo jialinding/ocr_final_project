@@ -11,7 +11,7 @@ font_face_pool = [
     cv2.FONT_HERSHEY_COMPLEX_SMALL,
     ]
 font_scale_pool = list(range(1, 5))
-thickness_pool = list(range(2, 4))
+thickness_pool = list(range(1, 3))
 color_pool = [(0,255), (255,0)]
 
 def gen_image(lines):
