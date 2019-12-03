@@ -3,47 +3,88 @@ import cv2
 import sys
 import os
 
-# Takes image, returns list of images (each representing a row of text)
+# Given two interval a and b, return length of the intersection
+def intersect_interval(a, b):
+  a_begin, a_end = a
+  b_begin, b_end = b
+  if a_end < b_begin or b_end < a_begin:
+    return 0
+  return min(a_end, b_end) - max(a_begin, b_begin)
+
+def overlaps(box1, box2, threshold=0.8):
+  x1, y1, w1, h1 = box1
+  x2, y2, w2, h2 = box2
+  height_union = max(y1+h1, y2+h2) - min(y1,y2)
+  height_intersection = intersect_interval((y1, y1+h1), (y2,y2+h2))
+  overlap_ratio = height_intersection / min(height_union, h1, h2)
+  return overlap_ratio > threshold
+
+def union(box1, box2):
+  x1, y1, w1, h1 = box1
+  x2, y2, w2, h2 = box2
+
+  x = min(x1, x2)
+  y = min(y1, y2)
+  w = max(x1+w1, x2+w2) - x
+  h = max(y1+h1, y2+h2) - y
+  return x, y, w, h
+
+# Takes img, returns list of imgs (each representing a row of text)
 # Assumes img is grayscale
 def extract_lines(img):
-	# Remove left and right margins
-	# Threshold to determine if column is not blank: 1%
-	y_sum = np.sum(255-img, 0)
-	y_blank = (y_sum > img.shape[0] * 255 * 0.01).astype(np.int)
-	nonzero_y = np.nonzero(y_blank)[0]
-	img = img[:, nonzero_y[0]:nonzero_y[-1]+1]
+  # binary
+  ret, thresh = cv2.threshold(img,127,255,cv2.THRESH_BINARY_INV)
 
-	x_sum = np.sum(255-img, 1)
+  # dilation
+  kernel = np.ones((5,100), np.uint8)
+  img_dilation = cv2.dilate(thresh, kernel, iterations=1)
 
-	# Threshold to determine if row is not blank: 2%
-	x_blank = np.concatenate([
-		[0],
-		(x_sum > img.shape[1] * 255 * 0.02).astype(np.int),
-		[0]
-	])
-	x_diff = x_blank[1:] - x_blank[:-1]
-	row_starts = np.where(x_diff == 1)[0]
-	row_ends = np.where(x_diff == -1)[0]
-	rows = []
-	for i in range(row_starts.shape[0]):
-		# Ignore noisy results (rows that have height less than 10 pixels)
-		if row_ends[i] - row_starts[i] < 10:
-			continue
+  # find contours
+  ctrs, hier = cv2.findContours(img_dilation.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-		# print(i, row_starts[i], row_ends[i])
-		# cv2.line(image, (-10, row_starts[i]), (3000, row_starts[i]), (0,255,0), 1)
-		# cv2.line(image, (-10, row_ends[i]), (3000, row_ends[i]), (0,0,255), 1)
-		rows.append(img[row_starts[i]:row_ends[i], :])
-	return rows
+  # sort by height
+  sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[1])
 
-# Takes image representing row of text, returns list of images (each reepreseting a character)
+  prev_box = None
+
+  lines = []
+
+  for i, ctr in enumerate(sorted_ctrs):
+      # Get bounding box
+      x, y, w, h = cv2.boundingRect(ctr)
+      cur_box = x, y, w, h
+
+      if prev_box is None:
+        prev_box = cur_box
+        continue
+
+      # merge with the previous box if overlaps significantly
+      if overlaps(prev_box, cur_box):
+        prev_box = union(prev_box, cur_box)
+        cur_box = None
+        continue
+
+      # output the box
+      x, y, w, h = prev_box
+      lines.append(img[y:y+h, x:x+w])
+      prev_box = None
+      prev_box = cur_box
+
+  if prev_box is not None:
+    x, y, w, h = prev_box
+    lines.append(img[y:y+h, x:x+w])
+    prev_box = None
+
+  return lines
+
+# Takes img representing row of text, returns list of imgs (each reepreseting a character)
 # Assumes img is grayscale
 # Spaces are represented as "None" in the returned list
 # Assumes that characters are separated by white space,
 # and each character is one connected piece of non-white space
-# Based on https://stackoverflow.com/questions/10964226/how-to-convert-an-image-into-character-segments
+# Based on https://stackoverflow.com/questions/10964226/how-to-convert-an-img-into-character-segments
 def extract_chars(img):
-	# smooth the image to avoid noises
+	# smooth the img to avoid noises
 	# img = cv2.medianBlur(img,5)
 
 	# Apply adaptive threshold
@@ -113,9 +154,9 @@ input_f, output_dir = sys.argv[1:]
 input_name = input_f.split("/")[-1]
 input_quality = int(input_name.split(".")[1])
 
-image = cv2.imread(input_f)
-image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-lines = extract_lines(image)
+img = cv2.imread(input_f)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+lines = extract_lines(img)
 for i, line in enumerate(lines):
 	out_name = 'line{}.{}.jpg'.format(i, input_quality)
 	cv2.imwrite(os.path.join(output_dir, out_name), line, (cv2.IMWRITE_JPEG_QUALITY, input_quality))
@@ -126,7 +167,7 @@ for i, line in enumerate(lines):
 		out_name = 'line{}.char{}.{}.jpg'.format(i, j, input_quality)
 		cv2.imwrite(os.path.join(output_dir, out_name), char, (cv2.IMWRITE_JPEG_QUALITY, input_quality))
 
-# # Finally show the image
-# cv2.imshow('img',image)
+# # Finally show the img
+# cv2.imshow('img',img)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
