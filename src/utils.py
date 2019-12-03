@@ -12,7 +12,7 @@ font_face_pool = [
     ]
 font_scale_pool = list(range(1, 5))
 thickness_pool = list(range(1, 3))
-color_pool = [(0,255), (255,0)]
+color_pool = [(0,255)]
 
 def gen_image(lines):
   font_face = random.choice(font_face_pool)
