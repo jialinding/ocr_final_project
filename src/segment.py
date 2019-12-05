@@ -150,23 +150,24 @@ def extract_chars(img):
 
 	return chars
 
-input_f, output_dir = sys.argv[1:]
-input_name = input_f.split("/")[-1]
-input_quality = int(input_name.split(".")[1])
-
-img = cv2.imread(input_f)
-img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-lines = extract_lines(img)
-for i, line in enumerate(lines):
-	out_name = 'line{}.{}.jpg'.format(i, input_quality)
-	cv2.imwrite(os.path.join(output_dir, out_name), line, (cv2.IMWRITE_JPEG_QUALITY, input_quality))
-	chars = extract_chars(line)
-	for j, char in enumerate(chars):
-		if char is None:
-			continue
-		out_name = 'line{}.char{}.{}.jpg'.format(i, j, input_quality)
-		cv2.imwrite(os.path.join(output_dir, out_name), char, (cv2.IMWRITE_JPEG_QUALITY, input_quality))
-
+if __name__ == '__main__':
+  input_f, output_dir = sys.argv[1:]
+  input_name = input_f.split("/")[-1]
+  input_quality = int(input_name.split(".")[1])
+  
+  img = cv2.imread(input_f)
+  img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+  lines = extract_lines(img)
+  for i, line in enumerate(lines):
+  	out_name = 'line{}.{}.jpg'.format(i, input_quality)
+  	cv2.imwrite(os.path.join(output_dir, out_name), line, (cv2.IMWRITE_JPEG_QUALITY, input_quality))
+  	chars = extract_chars(line)
+  	for j, char in enumerate(chars):
+  		if char is None:
+  			continue
+  		out_name = 'line{}.char{}.{}.jpg'.format(i, j, input_quality)
+  		cv2.imwrite(os.path.join(output_dir, out_name), char, (cv2.IMWRITE_JPEG_QUALITY, input_quality))
+  
 # # Finally show the img
 # cv2.imshow('img',img)
 # cv2.waitKey(0)

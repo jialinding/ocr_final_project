@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import random
+import torch
 
 font_face_pool = [
     cv2.FONT_HERSHEY_SIMPLEX,
@@ -38,3 +39,20 @@ def gen_image(lines):
     y += int(h2 * 1.5)
     cv2.putText(img, line, (int(0.25*w), y), font_face, font_scale, (text_c,text_c,text_c), thickness)
   return img
+
+def split_image(img):
+  # split the image into a list of 28 x 14 smaller images
+  orig = img
+  img = torch.from_numpy(img).float()
+  h, w = img.shape
+  assert h == 28
+  images = []
+  for i in range(0, w, 14):
+    if i + 14 <= w:
+      images.append(img[:, i:i+14])
+    else:
+      padded = torch.ones(28,14)
+      padded[:, :] = 255
+      padded[:, :w-i] = img[:, i:w]
+      images.append(padded)
+  return torch.stack(images)
