@@ -12,7 +12,7 @@ font_face_pool = [
     cv2.FONT_HERSHEY_COMPLEX_SMALL,
     ]
 font_scale_pool = list(range(1, 5))
-thickness_pool = list(range(1, 3))
+thickness_pool = list(range(2, 3))
 color_pool = [(0,255)]
 
 def gen_image(lines):
@@ -43,7 +43,7 @@ def gen_image(lines):
 def split_image(img):
   # split the image into a list of 28 x 14 smaller images
   orig = img
-  img = torch.from_numpy(img).float()
+  img = torch.from_numpy(img).float() / 255
   h, w = img.shape
   assert h == 28
   images = []
@@ -52,7 +52,6 @@ def split_image(img):
       images.append(img[:, i:i+14])
     else:
       padded = torch.ones(28,14)
-      padded[:, :] = 255
       padded[:, :w-i] = img[:, i:w]
       images.append(padded)
   return torch.stack(images)

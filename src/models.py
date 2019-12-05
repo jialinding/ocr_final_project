@@ -32,16 +32,22 @@ class LineEncoder(nn.Module):
         nn.ReLU(),
 
         nn.Conv2d(num_channels, num_channels, 3),
+
+        nn.MaxPool2d(2,2),
+
         Flatten()
         )
-    cnn_out_size = num_channels * 18 * 4
+    cnn_out_size = num_channels * 9 * 2
     self.lstm = nn.LSTM(
         input_size=cnn_out_size,
         hidden_size=hidden_size,
         batch_first=True, bidirectional=True)
     self.h_init = nn.Parameter(torch.randn(2, 1, hidden_size))
     self.c_init = nn.Parameter(torch.randn(2, 1, hidden_size))
-    self.fc = nn.Linear(2 * hidden_size, num_chars)
+    self.fc = nn.Sequential(
+        nn.Linear(2 * hidden_size, hidden_size),
+        nn.ReLU(),
+        nn.Linear(hidden_size, num_chars))
 
   def init(self, batch_size, device):
     h = self.h_init.repeat(1, batch_size, 1).to(device)
@@ -94,7 +100,7 @@ class LineDecoder(nn.Module):
     return y, hidden
 
 class OCRModel(nn.Module):
-  def __init__(self, num_chars, hidden_size=128, num_channels=128):
+  def __init__(self, num_chars, hidden_size=256, num_channels=32):
     super().__init__()
     self.encoder = LineEncoder(num_chars, 
         hidden_size=hidden_size, num_channels=num_channels)

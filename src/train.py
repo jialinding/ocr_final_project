@@ -12,7 +12,7 @@ from chars import *
 
 class Dataset(torch.utils.data.Dataset):
   def __init__(self, dir):
-    image_files = glob.glob(dir+'/*.19.jpg')
+    image_files = glob.glob(dir+'/*.jpg')
     images = []
     text_labels = {}
 
@@ -50,14 +50,14 @@ def pack(data):
 
 train_dir = sys.argv[1]
 batch_size = 64
-num_epochs = 5
+num_epochs = 50
 num_workers = 16
 
 model = OCRModel(num_chars=NUM_TOKENS)
 device = torch.device("cuda:2")
 model.to(device)
 
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
 #optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
 encoder = model.encoder
 #decoder = model.decoder
@@ -90,6 +90,7 @@ for _ in range(num_epochs):
     loss = ctc_loss(preds, y_padded, input_lengths, torch.LongTensor(y_lengths).to(device))
 
     pbar.set_description('loss: %.4f' % float(loss))
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()

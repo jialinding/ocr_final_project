@@ -17,7 +17,7 @@ def transcribe(model, img):
         batch_first=False)
   s = ''
   for prob in logits.view(len(images), -1):
-    _, indices = prob.topk(5)
+    _, indices = prob.topk(10)
     print([ids2chars[int(i)] for i in indices])
   print(s)
 
