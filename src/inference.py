@@ -24,7 +24,7 @@ def transcribe(model, img):
 model_f, img_f = sys.argv[1:]
 
 model = OCRModel(num_chars=NUM_TOKENS)
-model.load_state_dict(torch.load(model_f))
+model.load_state_dict(torch.load(model_f, map_location=torch.device('cpu')))
 model.eval()
 
 img = cv2.imread(img_f)
