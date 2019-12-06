@@ -5,8 +5,15 @@ import torch
 from tqdm import tqdm
 from chars import *
 import torch.nn as nn
+import stringdist
 
 from inference import decode
+
+def dist_metric(actual, target):
+  return stringdist.levenshtein(actual, target)/len(target)
+
+def avg(xs):
+  return sum(xs) / len(xs)
 
 model_f, val_dir = sys.argv[1:]
 
@@ -29,6 +36,8 @@ dataloader = torch.utils.data.DataLoader(val_dataset,
               collate_fn=pack,
               num_workers=num_workers) 
 
+dists = []
+
 pbar = tqdm(iter(dataloader), total=len(dataloader))
 for x, y_padded, y_packed, y_lengths in pbar:
   x = x.to(device=device)
@@ -46,5 +55,8 @@ for x, y_padded, y_packed, y_lengths in pbar:
   for preds, l, target, target_l in zipped:
     s_decoded = decode(preds[:l, :])
     s_target = ''.join(ids2chars[int(i)] for i in target[:target_l])
-    print('DECODED:', s_decoded)
-    print('LABEL:', s_target)
+    dist = dist_metric(s_decoded, s_target)
+    pbar.set_description('Dist: %.4f' % dist)
+    dists.append(dist)
+
+print('Average dist', avg(dists))
