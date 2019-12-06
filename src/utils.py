@@ -2,6 +2,11 @@ import cv2
 import numpy as np
 import random
 import torch
+import torch.utils.data
+import torch.nn as nn
+from tqdm import tqdm
+import glob
+from chars import *
 
 font_face_pool = [
     cv2.FONT_HERSHEY_SIMPLEX,
@@ -41,17 +46,65 @@ def gen_image(lines):
   return img
 
 def split_image(img):
-  # split the image into a list of 28 x 14 smaller images
+  # split the image into a list of 28 x 7 smaller images
   orig = img
   img = torch.from_numpy(img).float() / 255
   h, w = img.shape
   assert h == 28
   images = []
-  for i in range(0, w, 14):
-    if i + 14 <= w:
-      images.append(img[:, i:i+14])
+  for i in range(0, w, 7):
+    if i + 7 <= w:
+      images.append(img[:, i:i+7])
     else:
-      padded = torch.ones(28,14)
+      padded = torch.ones(28,7)
       padded[:, :w-i] = img[:, i:w]
       images.append(padded)
   return torch.stack(images)
+
+class Dataset(torch.utils.data.Dataset):
+  def __init__(self, dir):
+    image_files = glob.glob(dir+'/*.jpg')
+    images = []
+    text_labels = {}
+
+    for f in tqdm(image_files):
+      label_name, qual, _ = f.split('.')
+      label_name = label_name.split('/')[-1]
+      images.append((f, label_name))
+      if label_name not in text_labels:
+        with open(dir + '/' + label_name + '.txt') as label_f:
+          text_labels[label_name] = torch.LongTensor(
+              [char2ids[c] for c in label_f.read().strip()])
+
+    self.images = images
+    self.labels = text_labels
+
+  def __len__(self):
+    return len(self.images)
+
+  def __getitem__(self, idx):
+    img_f, label_name = self.images[idx]
+    img = cv2.imread(img_f)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    x = split_image(img)
+    y = self.labels[label_name]
+    return x, y
+
+def pack_sequences(seqs, device):
+  lengths = [len(s) for s in seqs]
+  seqs_padded = nn.utils.rnn.pad_sequence(seqs, batch_first=True).to(device)
+  return nn.utils.rnn.pack_padded_sequence(
+      seqs_padded, lengths,
+      batch_first=True, enforce_sorted=False)
+
+def pack(data):
+  '''
+  pack dataset
+  '''
+  xs, ys = zip(*data)
+  y_lengths = [len(y) for y in ys]
+  y_padded = nn.utils.rnn.pad_sequence(ys, batch_first=True, padding_value=BLANK)
+  y_packed = nn.utils.rnn.pack_padded_sequence(
+      y_padded, y_lengths,
+      batch_first=True, enforce_sorted=False)
+  return pack_sequences(xs, torch.device('cpu')), y_padded, y_packed, y_lengths

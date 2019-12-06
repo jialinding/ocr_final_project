@@ -5,13 +5,6 @@ class Flatten(nn.Module):
   def forward(self, input):
     return input.view(input.size(0), -1)
 
-def pack_sequences(seqs, device):
-  lengths = [len(s) for s in seqs]
-  seqs_padded = nn.utils.rnn.pad_sequence(seqs, batch_first=True).to(device)
-  return nn.utils.rnn.pack_padded_sequence(
-      seqs_padded, lengths,
-      batch_first=True, enforce_sorted=False)
-
 class LineEncoder(nn.Module):
   '''
   [images of a line] -> <embedding for the line>
@@ -28,16 +21,11 @@ class LineEncoder(nn.Module):
         nn.Conv2d(num_channels, num_channels, 3),
         nn.ReLU(),
 
-        nn.Conv2d(num_channels, num_channels, 3),
-        nn.ReLU(),
-
-        nn.Conv2d(num_channels, num_channels, 3),
-
         nn.MaxPool2d(2,2),
 
         Flatten()
         )
-    cnn_out_size = num_channels * 9 * 2
+    cnn_out_size = num_channels * 11 * 1
     self.lstm = nn.LSTM(
         input_size=cnn_out_size,
         hidden_size=hidden_size,
@@ -57,7 +45,7 @@ class LineEncoder(nn.Module):
   def forward(self, x, device):
     # run the images through the CNN to extract features
     num_images = len(x.data)
-    features = self.cnn(x.data.view(num_images, 1, 28, 14))
+    features = self.cnn(x.data.view(num_images, 1, 28, 7))
     assert len(features) == len(x.data)
     features = x._replace(data=features)
 
@@ -100,14 +88,14 @@ class LineDecoder(nn.Module):
     return y, hidden
 
 class OCRModel(nn.Module):
-  def __init__(self, num_chars, hidden_size=256, num_channels=32):
+  def __init__(self, num_chars, hidden_size=256, num_channels=128):
     super().__init__()
     self.encoder = LineEncoder(num_chars, 
         hidden_size=hidden_size, num_channels=num_channels)
     #self.decoder = LineDecoder(hidden_size=hidden_size, num_chars=num_chars)
 
 # some tests to make sure the shapes match up
-#x = torch.rand(1, 28, 14)
+#x = torch.rand(1, 28, 7)
 #seq1 = x.repeat(3,1,1)
 #seq2 = x.repeat(4,1,1)
 #seq3 = x.repeat(5,1,1)
