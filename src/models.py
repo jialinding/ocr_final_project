@@ -14,18 +14,19 @@ class LineEncoder(nn.Module):
     self.cnn = nn.Sequential(
         nn.Conv2d(1, num_channels, 3),
         nn.ReLU(),
+        nn.BatchNorm2d(num_channels),
 
         nn.Conv2d(num_channels, num_channels, 3),
         nn.ReLU(),
-        
+        nn.BatchNorm2d(num_channels),
+
         nn.Conv2d(num_channels, num_channels, 3),
         nn.ReLU(),
-
-        nn.MaxPool2d(2,2),
+        nn.BatchNorm2d(num_channels),
 
         Flatten()
         )
-    cnn_out_size = num_channels * 11 * 1
+    cnn_out_size = num_channels * 22 * 1
     self.lstm = nn.LSTM(
         input_size=cnn_out_size,
         hidden_size=hidden_size,
@@ -95,6 +96,7 @@ class OCRModel(nn.Module):
     #self.decoder = LineDecoder(hidden_size=hidden_size, num_chars=num_chars)
 
 # some tests to make sure the shapes match up
+#from utils import pack_sequences
 #x = torch.rand(1, 28, 7)
 #seq1 = x.repeat(3,1,1)
 #seq2 = x.repeat(4,1,1)
