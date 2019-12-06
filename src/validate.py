@@ -55,8 +55,7 @@ for x, y_padded, y_packed, y_lengths in pbar:
   for preds, l, target, target_l in zipped:
     s_decoded = decode(preds[:l, :])
     s_target = ''.join(ids2chars[int(i)] for i in target[:target_l])
-    dist = dist_metric(s_decoded, s_target)
-    pbar.set_description('Dist: %.4f' % dist)
-    dists.append(dist)
+    dists.append(dist_metric(s_decoded, s_target))
+    pbar.set_description('Average dist: %.4f' % avg(dists))
 
 print('Average dist', avg(dists))
