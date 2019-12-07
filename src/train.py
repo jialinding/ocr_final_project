@@ -6,19 +6,21 @@ import torch.nn.functional as F
 import cv2
 import sys
 from tqdm import tqdm
-from utils import Dataset, pack
+from utils import Dataset, pack, exp_lr_scheduler
 from chars import *
 
 train_dir = sys.argv[1]
-batch_size = 64
-num_epochs = 50
+batch_size = 128
+lr = 1e-2
+decay_epoch = 2 # decay every 2 epoch
+num_epochs = 10
 num_workers = 16
 
 model = OCRModel(num_chars=NUM_TOKENS)
 device = torch.device("cuda:2")
 model.to(device)
 
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 encoder = model.encoder
 
 train_dataset = Dataset(train_dir)
@@ -27,7 +29,9 @@ dataloader = torch.utils.data.DataLoader(train_dataset,
               collate_fn=pack,
               num_workers=num_workers) 
 ctc_loss = nn.CTCLoss(blank=BLANK, zero_infinity=True)
-for _ in range(num_epochs):
+for epoch in range(num_epochs):
+  exp_lr_scheduler(optimizer, epoch, init_lr=lr, lr_decay_epoch=decay_epoch)
+
   pbar = tqdm(iter(dataloader), total=len(dataloader))
   for x, y_padded, y_packed, y_lengths in pbar:
     x = x.to(device=device)
