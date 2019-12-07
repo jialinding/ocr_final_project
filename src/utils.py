@@ -119,3 +119,23 @@ def exp_lr_scheduler(optimizer, epoch, init_lr=0.001, lr_decay_epoch=5):
       param_group['lr'] = lr
 
   return optimizer
+
+class CharDataset(torch.utils.data.Dataset):
+  def __init__(self, dir):
+    image_files = glob.glob(dir+'/*.jpg')
+    self.image_label_pairs = []
+
+    for f in tqdm(image_files):
+      label_name, qual, _ = f.split('.')
+      label_name = label_name.split('/')[-1].split("_")[1]
+      self.image_label_pairs.append((f, label_name))
+
+  def __len__(self):
+    return len(self.image_label_pairs)
+
+  def __getitem__(self, idx):
+    img_f, label_name = self.images[idx]
+    img = cv2.imread(img_f)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    y = label_name
+    return x, y
