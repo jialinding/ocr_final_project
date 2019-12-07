@@ -34,13 +34,13 @@ if __name__ == '__main__':
   model_f, img_f = sys.argv[1:]
   
   model = OCRModel(num_chars=NUM_TOKENS)
-  model.load_state_dict(torch.load(model_f))
+  device = torch.device('cpu')
+  model.load_state_dict(torch.load(model_f, map_location=device))
   model.eval()
   
   img = cv2.imread(img_f)
   img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-  device = torch.device('cpu')
   images = split_image(img)
   logits = model.encoder(pack_sequences([images], device), device)
   logits, input_lengths = nn.utils.rnn.pad_packed_sequence(
