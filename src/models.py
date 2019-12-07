@@ -110,3 +110,17 @@ class OCRModel(nn.Module):
 #    torch.zeros(13).long(),
 #    torch.zeros(6).long()]
 #decoder(pack_sequences(lines, device), hidden)
+
+def initialize_char_model(num_chars):
+  input_size = 28 * 28
+  hidden_sizes = [128, 64]
+  output_size = num_chars
+  char_model = nn.Sequential(
+    nn.Linear(input_size, hidden_sizes[0]),
+    nn.ReLU(),
+    nn.Linear(hidden_sizes[0], hidden_sizes[1]),
+    nn.ReLU(),
+    nn.Linear(hidden_sizes[1], output_size),
+    nn.LogSoftmax(dim=1)
+  )
+  return char_model
