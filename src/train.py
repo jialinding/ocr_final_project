@@ -12,8 +12,8 @@ from chars import *
 train_dir = sys.argv[1]
 batch_size = 128
 lr = 1e-2
-decay_epoch = 2 # decay every 2 epoch
-num_epochs = 10
+decay_epoch = 5 # decay every N epoch
+num_epochs = 25
 num_workers = 16
 
 model = OCRModel(num_chars=NUM_TOKENS)

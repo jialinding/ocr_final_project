@@ -89,7 +89,7 @@ class LineDecoder(nn.Module):
     return y, hidden
 
 class OCRModel(nn.Module):
-  def __init__(self, num_chars, hidden_size=256, num_channels=128):
+  def __init__(self, num_chars, hidden_size=512, num_channels=128):
     super().__init__()
     self.encoder = LineEncoder(num_chars, 
         hidden_size=hidden_size, num_channels=num_channels)
