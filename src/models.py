@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class Flatten(nn.Module):
   def forward(self, input):
@@ -121,6 +122,24 @@ def initialize_char_model(num_chars):
     nn.Linear(hidden_sizes[0], hidden_sizes[1]),
     nn.ReLU(),
     nn.Linear(hidden_sizes[1], output_size),
-    nn.LogSoftmax(dim=1)
+    # nn.LogSoftmax(dim=1)
   )
   return char_model
+
+class CharModel(nn.Module):
+  def __init__(self, num_chars):
+    super().__init__()
+    self.conv1 = nn.Conv2d(1, 32, 3)
+    self.pool = nn.MaxPool2d(2, 2)
+    self.conv2 = nn.Conv2d(32, 32, 3)
+    self.fc1 = nn.Linear(32 * 5 * 5, 256)
+    self.fc2 = nn.Linear(256, num_chars)
+
+  def forward(self, x):
+    x = F.relu(self.conv1(x))
+    x = self.pool(x)
+    x = self.pool(F.relu(self.conv2(x)))
+    x = x.view(-1, 32 * 5 * 5)
+    x = F.relu(self.fc1(x))
+    x = self.fc2(x)
+    return x
