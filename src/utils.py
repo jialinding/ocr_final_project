@@ -45,6 +45,33 @@ def gen_image(lines):
     cv2.putText(img, line, (int(0.25*w), y), font_face, font_scale, (text_c,text_c,text_c), thickness)
   return img
 
+def gen_image_all(lines):
+  imgs = []
+  for font_face in font_face_pool:
+    for font_scale in font_scale_pool:
+      thickness = random.choice(thickness_pool)
+      text_c, background_c = random.choice(color_pool)
+
+      # figure out size of the image
+      ws = []
+      hs = []
+      for line in lines:
+        (w, h), _ = cv2.getTextSize(line, font_face, font_scale, thickness)
+        ws.append(w)
+        hs.append(h)
+      w = max(ws)
+      h = sum(hs)
+
+      img = np.zeros((int(h*2),int(w*1.5),3), dtype=np.uint8)
+      img[:,:,:] = background_c
+
+      y = 0
+      for line, h2 in zip(lines, hs):
+        y += int(h2 * 1.5)
+        cv2.putText(img, line, (int(0.25*w), y), font_face, font_scale, (text_c,text_c,text_c), thickness)
+      imgs.append(img)
+  return imgs
+
 def split_image(img):
   # split the image into a list of 28 x 7 smaller images
   orig = img
@@ -126,16 +153,38 @@ class CharDataset(torch.utils.data.Dataset):
     self.image_label_pairs = []
 
     for f in tqdm(image_files):
-      label_name, qual, _ = f.split('.')
-      label_name = label_name.split('/')[-1].split("_")[1]
-      self.image_label_pairs.append((f, label_name))
+      label, qual, _ = f.split('.')
+      label = label.split('/')[-1].split("_")[1]
+      self.image_label_pairs.append((f, torch.LongTensor([int(label)])))
 
   def __len__(self):
     return len(self.image_label_pairs)
 
   def __getitem__(self, idx):
-    img_f, label_name = self.images[idx]
+    img_f, label = self.image_label_pairs[idx]
     img = cv2.imread(img_f)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    y = label_name
-    return x, y
+    # img = torch.FloatTensor(img).reshape(-1)
+    img = torch.FloatTensor(img).reshape(1, 28, 28)
+    return img, label
+
+# For validation
+class LineCharDataset(torch.utils.data.Dataset):
+  def __init__(self, dir):
+    image_files = glob.glob(dir+'/*.jpg')
+    self.image_label_pairs = []
+
+    for f in tqdm(image_files):
+      label, qual, _ = f.split('.')
+      label = label.split('/')[-1].split("_")[1]
+      self.image_label_pairs.append((f, torch.LongTensor([int(label)])))
+
+  def __len__(self):
+    return len(self.image_label_pairs)
+
+  def __getitem__(self, idx):
+    img_f, label = self.image_label_pairs[idx]
+    img = cv2.imread(img_f)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = torch.FloatTensor(img).reshape(-1)
+    return img, label
